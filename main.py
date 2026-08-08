@@ -9,10 +9,9 @@ from dotenv import load_dotenv
 from database import init_db
 from bot_commands import setup_commands
 from watchers import setup_watchers
-
+from notmeter import setup_notmeter
 
 VERSION = "v1.2.2 Stable"
-
 
 load_dotenv()
 
@@ -35,7 +34,6 @@ bot = commands.Bot(
 bot.aion2_version = VERSION
 bot.aion2_started_at = time.monotonic()
 
-
 # DB 생성 / 기존 DB 자동 마이그레이션
 init_db()
 
@@ -44,6 +42,9 @@ setup_commands(bot)
 
 # e2-micro용 단일 순차 자동 감지
 hub_watcher = setup_watchers(bot)
+
+# NotMeter GitHub 업데이트 자동 감지
+notmeter_watcher = setup_notmeter(bot)
 
 
 @bot.tree.error
@@ -55,10 +56,12 @@ async def on_app_command_error(
     슬래시 명령 예외가 나도 봇 전체가 영향을 받지 않도록
     사용자에게 가능한 범위에서 오류를 알려주고 로그를 남깁니다.
     """
+
     print(
         "[슬래시 명령 오류] "
         f"{type(error).__name__}: {error}"
     )
+
     traceback.print_exception(
         type(error),
         error,
@@ -81,6 +84,7 @@ async def on_app_command_error(
                 message,
                 ephemeral=True,
             )
+
     except Exception as response_error:
         print(
             "[슬래시 오류 응답 실패] "
@@ -118,6 +122,13 @@ async def on_ready():
             print(
                 "통합 자동 감지 시작! "
                 "(5분 간격 / 순차 실행)"
+            )
+
+        if not notmeter_watcher.is_running():
+            notmeter_watcher.start()
+            print(
+                "NotMeter 업데이트 감지 시작! "
+                "(5분 간격)"
             )
 
         print("=" * 45)
