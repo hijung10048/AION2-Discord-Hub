@@ -4,7 +4,9 @@ import aiohttp
 import json
 import os
 
-CHANNEL_ID = 1535556595319177287
+
+# NotMeter 업데이트 알림을 보낼 디스코드 채널
+CHANNEL_ID = 1535585837297827852
 
 GITHUB_API = (
     "https://api.github.com/repos/"
@@ -27,6 +29,7 @@ def load_last_version():
         with open(VERSION_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data.get("version")
+
     except Exception as e:
         print(f"[NotMeter] 버전 파일 읽기 오류: {e}")
         return None
@@ -41,6 +44,7 @@ def save_last_version(version):
                 ensure_ascii=False,
                 indent=2
             )
+
     except Exception as e:
         print(f"[NotMeter] 버전 저장 오류: {e}")
 
@@ -70,42 +74,55 @@ async def check_release(bot):
         version = release.get("tag_name")
 
         if not version:
-            print("[NotMeter] 버전 정보를 찾지 못했습니다.")
+            print(
+                "[NotMeter] 버전 정보를 찾지 못했습니다."
+            )
             return
 
-        title = release.get("name") or version
-        body = release.get("body") or "업데이트 내용이 없습니다."
+        body = (
+            release.get("body")
+            or "업데이트 내용이 없습니다."
+        )
+
         release_url = release.get("html_url")
 
         last_version = load_last_version()
 
-        # 최초 실행 시 현재 버전을 기준값으로 저장
+        # 처음 실행했을 때는 현재 버전만 저장
         if last_version is None:
             save_last_version(version)
+
             print(
                 f"[NotMeter] 최초 기준 버전 저장: "
                 f"{version}"
             )
+
             return
 
-        # 기존 버전과 같으면 종료
+        # 이미 확인한 버전이면 아무것도 하지 않음
         if version == last_version:
             return
 
+        # 알림 채널 가져오기
         channel = bot.get_channel(CHANNEL_ID)
 
         if channel is None:
             try:
-                channel = await bot.fetch_channel(CHANNEL_ID)
+                channel = await bot.fetch_channel(
+                    CHANNEL_ID
+                )
+
             except Exception as e:
                 print(
                     f"[NotMeter] 채널 조회 실패: {e}"
                 )
                 return
 
+        # Discord Embed 글자 수 제한 대응
         if len(body) > 3500:
             body = body[:3500] + "\n..."
 
+        # 업데이트 Embed
         embed = discord.Embed(
             title=f"NotMeter 업데이트 · {version}",
             description=body,
@@ -113,10 +130,16 @@ async def check_release(bot):
         )
 
         embed.set_footer(
-            text="AION2 HUB · GitHub 자동 업데이트 알림"
+            text=(
+                "AION2 HUB · "
+                "GitHub 자동 업데이트 알림"
+            )
         )
 
-        view = discord.ui.View(timeout=None)
+        # 버튼
+        view = discord.ui.View(
+            timeout=None
+        )
 
         if release_url:
             view.add_item(
@@ -137,16 +160,18 @@ async def check_release(bot):
             )
         )
 
+        # Discord 전송
         await channel.send(
             content=(
                 "@everyone "
-                "**새로운 NotMeter 업데이트가 등록되었습니다.**"
+                "**새로운 NotMeter 업데이트가 "
+                "등록되었습니다.**"
             ),
             embed=embed,
             view=view
         )
 
-        # 메시지 전송 성공 후 새 버전 저장
+        # 성공적으로 전송된 뒤 버전 저장
         save_last_version(version)
 
         print(
