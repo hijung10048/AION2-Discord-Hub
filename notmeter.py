@@ -107,35 +107,30 @@ async def check_release(bot):
             body = body[:3500] + "\n..."
 
         embed = discord.Embed(
-            title="🚨 NotMeter 새 업데이트",
-            description=f"**{title}**",
+            title=f"NotMeter 업데이트 · {version}",
+            description=body,
             color=0x5865F2
         )
 
-        embed.add_field(
-            name="버전",
-            value=f"`{version}`",
-            inline=False
+        embed.set_footer(
+            text="AION2 HUB · GitHub 자동 업데이트 알림"
         )
-
-        embed.add_field(
-            name="업데이트 내용",
-            value=body,
-            inline=False
-        )
-
-        if release_url:
-            embed.add_field(
-                name="GitHub Release",
-                value=f"[릴리스 페이지 보기]({release_url})",
-                inline=False
-            )
 
         view = discord.ui.View(timeout=None)
 
+        if release_url:
+            view.add_item(
+                discord.ui.Button(
+                    label="업데이트 내용",
+                    style=discord.ButtonStyle.link,
+                    url=release_url,
+                    emoji="📋"
+                )
+            )
+
         view.add_item(
             discord.ui.Button(
-                label="NotMeter.zip 다운로드",
+                label="NotMeter 다운로드",
                 style=discord.ButtonStyle.link,
                 url=DOWNLOAD_URL,
                 emoji="📥"
@@ -145,7 +140,7 @@ async def check_release(bot):
         await channel.send(
             content=(
                 "@everyone "
-                "**NotMeter가 업데이트되었습니다!**"
+                "**새로운 NotMeter 업데이트가 등록되었습니다.**"
             ),
             embed=embed,
             view=view
