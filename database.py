@@ -86,6 +86,32 @@ def init_db():
         )
     """)
 
+    # YouTube 커뮤니티 게시글 상태
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS youtube_post_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            last_post_id TEXT
+        )
+    """)
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO youtube_post_state (
+            id,
+            last_post_id
+        )
+        VALUES (1, NULL)
+    """)
+
+    # 서버별 YouTube 커뮤니티 게시글 전송 기록
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS youtube_post_deliveries (
+            guild_id INTEGER NOT NULL,
+            post_id TEXT NOT NULL,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (guild_id, post_id)
+        )
+    """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notice_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -561,4 +587,48 @@ def save_coupon_delivery(
         guild_id,
         "article_id",
         article_id,
+    )
+
+# ==========================================
+# YouTube 커뮤니티 게시글
+# ==========================================
+
+def get_last_youtube_post_id():
+    return _get_state(
+        "youtube_post_state",
+        "last_post_id",
+    )
+
+
+def set_last_youtube_post_id(
+    post_id: str,
+):
+    _set_state(
+        "youtube_post_state",
+        "last_post_id",
+        post_id,
+    )
+
+
+def is_youtube_post_delivered(
+    guild_id: int,
+    post_id: str,
+):
+    return _is_delivered(
+        "youtube_post_deliveries",
+        guild_id,
+        "post_id",
+        post_id,
+    )
+
+
+def save_youtube_post_delivery(
+    guild_id: int,
+    post_id: str,
+):
+    _save_delivery(
+        "youtube_post_deliveries",
+        guild_id,
+        "post_id",
+        post_id,
     )
